@@ -1,0 +1,46 @@
+{
+  "name": "binance-interface",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@dynamic-labs/ethereum": "^4.10.1",
+    "@dynamic-labs/sdk-react-core": "^4.10.1",
+    "@dynamic-labs/wagmi-connector": "^4.10.1",
+    "@tanstack/react-query": "^5.69.0",
+    "@web3icons/core": "^4.0.10",
+    "@web3icons/react": "^4.0.10",
+    "antd": "^5.24.3",
+    "axios": "^1.8.3",
+    "crypto-js": "^4.2.0",
+    "echarts-for-react": "^3.0.3",
+    "next": "15.2.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "recharts": "^2.15.1",
+    "wagmi": "^2.14.16",
+    "tsx": "^4.19.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@mantine/core": "7.17.2",
+    "@mantine/hooks": "7.17.2",
+    "@tailwindcss/postcss": "^4",
+    "@types/crypto-js": "^4.2.2",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.2",
+    "styled-components": "^6.1.11",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
