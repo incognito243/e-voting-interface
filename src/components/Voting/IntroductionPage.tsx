@@ -1,15 +1,17 @@
-import {Typography} from 'antd';
+import { Typography, Tag } from 'antd';
 import Title from "antd/es/typography/Title";
-import {useUser} from "@/context/UserContext";
-import {getFormattedExpirationTime} from "@/utils/time";
-import {useEffect} from "react";
+import { useUser } from "@/context/UserContext";
+import { getFormattedExpirationTime } from "@/utils/time";
+import React, { useEffect } from "react";
 
-const {Paragraph, Text} = Typography;
+const { Paragraph, Text } = Typography;
 
 interface IntroductionPageProps {
   votingName: string;
   numberOfCandidates: number;
   expirationTime: number;
+  hasVoted: boolean | null;
+  loading: boolean;
   setDisableButton: (bool: boolean) => void;
 }
 
@@ -17,16 +19,19 @@ export default function IntroductionPage({
                                            votingName,
                                            numberOfCandidates,
                                            expirationTime,
+                                           hasVoted,
+                                           loading,
                                            setDisableButton,
                                          }: IntroductionPageProps) {
-  const {user} = useUser()
+  const { user } = useUser();
 
   useEffect(() => {
-    setDisableButton(false)
-  })
+    setDisableButton(hasVoted === true);
+  }, [hasVoted, setDisableButton]);
 
   const formattedExpirationTime = getFormattedExpirationTime(expirationTime);
-  const containerStyle = {
+
+  const containerStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -56,18 +61,29 @@ export default function IntroductionPage({
 
   return (
     <div style={containerStyle}>
-      {/* LEFT */}
       <div style={sectionStyle}>
         <Title level={4}>Introduction</Title>
         <Paragraph style={{fontSize: '18px'}}>
           You are e-voting in the {votingName}.
         </Paragraph>
-        <Paragraph style={{fontSize: '18px'}}>
-          You&#39;ve already voted! The last choice is taken into account. Next, make a choice.
-        </Paragraph>
+
+        {loading ? (
+          <Paragraph style={{fontSize: '18px'}}>
+            Checking your voting status...
+          </Paragraph>
+        ) : hasVoted ? (
+          <div>
+            <Paragraph style={{fontSize: '18px'}}>
+              You have already cast your vote in this election. You cannot vote again.
+            </Paragraph>
+          </div>
+        ) : (
+          <Paragraph style={{fontSize: '18px'}}>
+            You haven&#39;t voted in this election yet. Please continue to make your selection.
+          </Paragraph>
+        )}
       </div>
 
-      {/* MIDDLE */}
       <div style={sectionStyle}>
         <Title level={4}>Voting Information</Title>
         <div>
@@ -84,7 +100,6 @@ export default function IntroductionPage({
         </div>
       </div>
 
-      {/* RIGHT */}
       <div style={sectionStyle}>
         <Title level={4}>My Information</Title>
         <div>
@@ -93,7 +108,20 @@ export default function IntroductionPage({
         </div>
         <div>
           <Text style={labelStyle}>Citizen Id: </Text>
-          <Text style={valueStyle}>{user?.personalCode}</Text>
+          <Text style={valueStyle}>{user?.citizen_id}</Text>
+        </div>
+        <div>
+          <Text style={labelStyle}>Voting Status: </Text>
+          {loading ? (
+            <Text style={valueStyle}>Checking...</Text>
+          ) : (
+            <Text style={valueStyle}>
+              {hasVoted ?
+                <Tag color="blue">Already voted</Tag> :
+                <Tag color="green">Not voted yet</Tag>
+              }
+            </Text>
+          )}
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@ export function useCheckConnectWallet() {
     if (await primaryWallet?.isConnected()) {
       await handleLogOut();
     }
-  })
+  }, [primaryWallet, handleLogOut]); // Added the missing dependency array
 
   return { checkConnectWallet, disconnectWallet };
 }

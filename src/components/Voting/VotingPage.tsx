@@ -1,7 +1,7 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import {Row, Col, Typography, Avatar, Button, Divider} from "antd";
 import {Candidate, ExtendedVotingServer} from "@/api/e-voting-service/types";
-import {useAccount, useSignMessage} from "wagmi";
+import {useAccount} from "wagmi";
 import {useCheckConnectWallet} from "@/hook/useCheckConnectWallet";
 import {useUser} from "@/context/UserContext";
 import {CheckCircleOutlined} from "@ant-design/icons";
@@ -10,7 +10,7 @@ import {SignMessageModal} from "@/components/Modal/SignMessageModal";
 const {Title, Text} = Typography;
 
 interface VotingPageProps {
-  server: ExtendedVotingServer
+  server: ExtendedVotingServer | undefined
   selectedCandidate: Candidate | null;
   setSignatureVerify: (signature: string) => void;
   setSignatureVote: (signature: string) => void;
@@ -30,7 +30,6 @@ export default function VotingPage({
   return (
     <div className="min-h-screen flex flex-col justify-between p-6 bg-white">
       <Row gutter={[16, 16]}>
-        {/* Left Section: Candidate Details */}
         <Col xs={24} md={12}>
           <Title level={5} style={{marginTop: "0px"}}>Candidate Details</Title>
           <div
@@ -66,7 +65,6 @@ export default function VotingPage({
           </div>
         </Col>
 
-        {/* Right Section: Sign Action */}
         <Col xs={24} md={12}>
           <Title level={5} style={{marginTop: "0px"}}>User Information</Title>
           <div

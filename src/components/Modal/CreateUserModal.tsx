@@ -1,60 +1,98 @@
 import React from 'react';
-import { Modal, Form, Input } from 'antd';
+import { Modal, Form, Input, Button, Select, message } from 'antd';
+import { CreateUserRequest } from '@/api/e-voting-service/types';
+import { putCreateUser } from '@/api/e-voting-service/user/putCreateUser';
 
-interface AccountFormValues {
-  accountAlias: string;
-  apiKey: string;
-  secretKey: string;
-}
-
-interface AccountModalProps {
-  visible: boolean;
+interface CreateUserModalProps {
+  isVisible: boolean;
   onCancel: () => void;
-  onSubmit: (values: AccountFormValues) => void;
+  onSuccess: () => void;
 }
 
-const CreateUserModal: React.FC<AccountModalProps> = ({ visible, onCancel, onSubmit }) => {
-  const [form] = Form.useForm<AccountFormValues>();
-
-  const handleOk = async () => {
+const CreateUserModal: React.FC<CreateUserModalProps> = ({
+                                                           isVisible,
+                                                           onCancel,
+                                                           onSuccess
+                                                         }) => {
+  const handleCreateUser = async (values: CreateUserRequest) => {
     try {
-      const values = await form.validateFields();
-      onSubmit(values);
-      form.resetFields();
+      const response = await putCreateUser(values);
+      message.success(`User created with code: ${response}`);
+      onCancel();
+      onSuccess();
     } catch (error) {
-      console.error('Validation Failed:', error);
+      console.error(error);
+      message.error("Failed to create user");
     }
   };
 
   return (
     <Modal
-      open={visible}
-      title="Add Account"
+      title="Create User"
+      open={isVisible}
       onCancel={onCancel}
-      onOk={handleOk}
-      okText="Submit"
+      footer={null}
+      width={800}
     >
-      <Form form={form} layout="vertical">
-        <Form.Item
-          label="Account Alias"
-          name="accountAlias"
-          rules={[{ required: true, message: 'Please input the account alias!' }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="API Key"
-          name="apiKey"
-          rules={[{ required: true, message: 'Please input the API Key!' }]}
-        >
-          <Input.Password />
-        </Form.Item>
-        <Form.Item
-          label="Secret Key"
-          name="secretKey"
-          rules={[{ required: true, message: 'Please input the Secret Key!' }]}
-        >
-          <Input.Password />
+      <Form layout="vertical" onFinish={handleCreateUser}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+          <Form.Item
+            name="username"
+            label="Username"
+            rules={[{ required: true, message: "Please enter a username" }]}
+          >
+            <Input placeholder="Enter username" />
+          </Form.Item>
+          <Form.Item
+            name="citizen_id"
+            label="Citizen ID"
+            rules={[{ required: true, message: "Please enter a citizen ID" }]}
+          >
+            <Input placeholder="Enter citizen ID" />
+          </Form.Item>
+          <Form.Item
+            name="citizen_name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter a name" }]}
+          >
+            <Input placeholder="Enter name" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ required: true, message: "Please enter an email" }]}
+          >
+            <Input type="email" placeholder="Enter email" />
+          </Form.Item>
+          <Form.Item
+            name="public_key"
+            label="Public Key"
+            rules={[{ required: true, message: "Please enter a public key" }]}
+          >
+            <Input placeholder="Enter public key" />
+          </Form.Item>
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[{ required: true, message: "Please enter a password" }]}
+          >
+            <Input.Password placeholder="Enter password" />
+          </Form.Item>
+          <Form.Item
+            name="is_admin"
+            label="Admin"
+            rules={[{ required: true, message: "Please select an admin option" }]}
+          >
+            <Select placeholder="Select admin status">
+              <Select.Option value={true}>Yes</Select.Option>
+              <Select.Option value={false}>No</Select.Option>
+            </Select>
+          </Form.Item>
+        </div>
+        <Form.Item style={{ marginTop: "16px" }}>
+          <Button type="primary" htmlType="submit">
+            Create User
+          </Button>
         </Form.Item>
       </Form>
     </Modal>

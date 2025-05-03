@@ -7,7 +7,6 @@ import {themeAntd, themeStyledComponents} from "@/utils/themeConfig";
 import {ConfigProvider, Layout} from "antd";
 import {Sidebar} from "@/components/Common/Sidebar";
 import HeaderBar from "@/components/Common/HeaderBar";
-// import FooterBar from "@/components/Layout/FooterBar";
 import {ThemeProvider} from "styled-components";
 import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
 import {EthereumWalletConnectors} from "@dynamic-labs/ethereum";
@@ -16,7 +15,6 @@ import {UserProvider} from "@/context/UserContext";
 import {WagmiProvider} from "wagmi";
 import {clientConfig} from "@/constant/chain";
 import {DynamicWagmiConnector} from "@dynamic-labs/wagmi-connector";
-// import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
 
 const inter = Inter({subsets: ['latin']});
 

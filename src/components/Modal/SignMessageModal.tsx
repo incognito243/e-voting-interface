@@ -8,8 +8,8 @@ import {LoadingOutlined} from "@ant-design/icons";
 import {SuccessIcon} from "@/constant/icon";
 
 interface SignMessageModalProps {
-  server: ExtendedVotingServer
-  selectedCandidate: Candidate;
+  server: ExtendedVotingServer | undefined
+  selectedCandidate: Candidate | null;
   setOpenSignModal: (open: boolean) => void;
   setSignatureVerify: (signature: string) => void;
   setSignatureVote: (signature: string) => void;
@@ -44,11 +44,11 @@ export const SignMessageModal = (props: SignMessageModalProps) => {
     setIsLoading(true);
     setCurrentStep(0);
     try {
-      const messageVerify = `Vote From: ${user?.username} is voting in server ${props.server.voting_server.server_id}`;
+      const messageVerify = `Vote From: ${user?.username} is voting in server ${props.server?.voting_server.server_id}`;
       const signatureVerify = await signMessageAsync({message: messageVerify});
       props.setSignatureVerify(signatureVerify)
       setCurrentStep(1);
-      const messageVote = `Vote For: user is voting for ${props.selectedCandidate.index}`
+      const messageVote = `Vote For: user is voting for ${props.selectedCandidate?.index}`
       const signatureVote = await signMessageAsync({message: messageVote});
       props.setSignatureVote(signatureVote)
       setCurrentStep(2);

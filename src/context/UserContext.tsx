@@ -3,7 +3,7 @@ import {InfoUser} from "@/api/e-voting-service/types";
 
 interface UserContextProps {
   user: InfoUser | null;
-  setUser: (user: InfoUser) => void;
+  setUser: (user: InfoUser | null) => void;
 }
 
 const UserContext = createContext<UserContextProps | undefined>(undefined);

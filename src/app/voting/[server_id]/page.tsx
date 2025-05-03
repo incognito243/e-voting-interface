@@ -14,6 +14,8 @@ import VotingPage from "@/components/Voting/VotingPage";
 import {postCastVote} from "@/api/e-voting-service/user/postCastVote";
 import {useUser} from "@/context/UserContext";
 import Result from "@/components/Exception/Result";
+import {isVoted} from "@/api/e-voting-service/user/isVoted";
+import VotingResults from "@/components/VotingResult";
 
 const {Title} = Typography;
 const {Step} = Steps;
@@ -28,7 +30,33 @@ const VotingAction: NextPage = () => {
   const [signatureVote, setSignatureVote] = useState<string>("");
   const {user} = useUser();
   const [currentStep, setCurrentStep] = useState(0);
+  const [hasVoted, setHasVoted] = useState<boolean | null>(null);
+  const [checkingVoteStatus, setCheckingVoteStatus] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const checkVotingStatus = async () => {
+      if (user?.username && params?.server_id) {
+        try {
+          setCheckingVoteStatus(true);
+          const voted = await isVoted(user.username, params.server_id);
+          setHasVoted(voted);
+
+          if (voted) {
+            setDisableButton(true);
+          }
+        } catch (error) {
+          console.error("Error checking if user voted:", error);
+        } finally {
+          setCheckingVoteStatus(false);
+        }
+      }
+    };
+
+    if (currentStep === 1) {
+      checkVotingStatus();
+    }
+  }, [user?.username, params?.server_id, currentStep]);
 
   const castVote = async () => {
     if (!user?.username || !server?.voting_server.server_id) {
@@ -45,7 +73,7 @@ const VotingAction: NextPage = () => {
         voting_hex: signatureVote,
       });
 
-      if (res === 200) {
+      if (res === 0) {
         setCurrentStep(4);
       } else {
         setCurrentStep(5);
@@ -78,6 +106,8 @@ const VotingAction: NextPage = () => {
                 votingName={server.voting_server.server_name}
                 numberOfCandidates={server.voting_server.number_of_candidates}
                 expirationTime={server.voting_server.exp_time}
+                hasVoted={hasVoted}
+                loading={checkingVoteStatus}
                 setDisableButton={setDisableButton}
               />
             ) : (
@@ -141,52 +171,42 @@ const VotingAction: NextPage = () => {
   }
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div style={{padding: "24px"}}>
       <Title level={3}>Voting Action</Title>
       {server.voting_server.active ? (
-        !server.voting_server.opened_vote ? (
-          <div style={{ padding: "20px 0" }}>
-            <Title level={4} className="text-green-700 mt-4">Voting Completed</Title>
-            <Typography.Paragraph className="text-gray-700">
-              The voting process has been successfully completed. Thank you for your participation.
-            </Typography.Paragraph>
-
-            <Button
-              style={{ marginRight: "auto" }}
-              onClick={() => {
-                router.push("/voting");
-              }}
-            >
-              Back to Voting List
-            </Button>
-          </div>
+        server.voting_server.opened_vote ? (
+          <VotingResults server={server} />
         ) : (
           <div>
             <Steps current={currentStep} className="w-full max-w-md mb-8">
-              <Step title="Login" />
-              <Step title="Introduction" />
-              <Step title="Selection" />
-              <Step title="E-Voting" />
+              <Step title="Login"/>
+              <Step title="Introduction"/>
+              <Step title="Selection"/>
+              <Step title="E-Voting"/>
             </Steps>
             <div>{renderStepContent()}</div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "150px 0" }}>
+            <div style={{display: "flex", justifyContent: "space-between", padding: "150px 0"}}>
               <Button
-                style={{ marginRight: "auto" }}
+                style={{marginRight: "auto"}}
                 onClick={() => {
-                  if (currentStep > 0) {
-                    setCurrentStep(currentStep - 1);
-                  }
-                  if (currentStep === 0) {
+                  if (currentStep === 5) {
+                    setCurrentStep(3);
+                  } else if (currentStep === 0) {
                     router.push("/voting");
+                  } else if (currentStep == 4) {
+                    window.location.reload()
+                  } else if (currentStep > 0) {
+                    setCurrentStep(currentStep - 1);
                   }
                 }}
               >
-                {currentStep === 0 ? "Cancel" : "Back"}
+                {currentStep === 0 ? "Cancel" : currentStep === 4 ? "New Vote" : "Back"}
               </Button>
               <Button
                 type="primary"
-                style={{ marginLeft: "auto" }}
+                style={{marginLeft: "auto"}}
                 disabled={disableButton}
+                title={currentStep === 1 && hasVoted ? "You have already voted in this election" : ""}
                 onClick={async () => {
                   if (currentStep === 0 && loginFormRef.current) {
                     loginFormRef.current.submit();
@@ -208,14 +228,14 @@ const VotingAction: NextPage = () => {
           </div>
         )
       ) : (
-        <div style={{ padding: "20px 0" }}>
+        <div style={{padding: "20px 0"}}>
           <Title level={4} className="text-red-700 mt-4">Voting is not active</Title>
           <Typography.Paragraph className="text-gray-700">
             The voting process is currently inactive. Please check back later.
           </Typography.Paragraph>
 
           <Button
-            style={{ marginRight: "auto" }}
+            style={{marginRight: "auto"}}
             onClick={() => {
               router.push("/voting");
             }}

@@ -21,7 +21,11 @@ const Login = forwardRef((props: ActionProps, ref) => {
 
   const handleLogin = async (values: { username: string; password: string; personalCode: string }) => {
     try {
-      const response = await login({ username: values.username, personal_code: values.personalCode, password: values.password });
+      const response = await login({
+        username: values.username,
+        personal_code: values.personalCode,
+        password: values.password
+      });
 
       localStorage.setItem('authToken', response.token);
 
@@ -32,13 +36,13 @@ const Login = forwardRef((props: ActionProps, ref) => {
         verified: response.user.verified,
         email: response.user.email,
         compressed_key: response.user.compressed_key,
+        is_admin: response.user.is_admin
       });
-
-      console.log(response)
 
       setErrorMessage(null);
       props.setCurrentStep(1);
-    } catch {
+    } catch (error) {
+      console.error('Login error:', error);
       setErrorMessage('Login failed. Please check your credentials.');
     }
   };
@@ -107,5 +111,7 @@ const Login = forwardRef((props: ActionProps, ref) => {
     </div>
   );
 });
+
+Login.displayName = 'Login';
 
 export default Login;

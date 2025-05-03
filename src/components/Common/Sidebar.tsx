@@ -29,7 +29,7 @@ export const Sidebar = () => {
         color: '#9ac2c2'
       }}>
         {!collapsed &&
-          <Typography.Title level={4} style={{margin: 0, color: '#9ac2c2'}}>Bot Report</Typography.Title>}
+          <Typography.Title level={4} style={{margin: 0, color: '#9ac2c2'}}>E Voting</Typography.Title>}
         <Button
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined/> : <MenuFoldOutlined/>}

@@ -9,11 +9,13 @@ export interface CreateUserRequest {
 
 export interface LoginRequest {
   username: string;
+  personal_code: string;
   password: string;
 }
 
 export interface LoginResponse {
   token: string;
+  user: InfoUser;
 }
 
 export interface VotingRequest {
@@ -42,6 +44,7 @@ export interface CreateVotingServerRequest {
   server_name: string;
   candidates: Candidate[];
   signature_hex: string;
+  contract_address: string;
   exp_time: string;
 }
 
@@ -52,6 +55,7 @@ export interface GetVotingServerByIdRequest {
 export interface OpenVoteRequest {
   admin_id: string;
   server_id: string;
+  server_name: string;
   signature_hex: string;
 }
 
@@ -90,11 +94,12 @@ export interface InfoUser {
   verified: boolean;
   email: string;
   compressed_key: string;
+  is_admin: boolean;
 }
 
 export interface ActiveVotingServerRequest {
   admin_id: string;
-  server_id: string;
+  server_name: string;
   signature_hex: string;
 }
 

@@ -1,172 +1,418 @@
 'use client';
-import React, { useState, useEffect } from "react";
-import { Form, Input, Button, message, Table } from "antd";
-import { putCreateVoting } from "@/api/e-voting-service/voting/putCreateVoting";
-import { postOpenVote } from "@/api/e-voting-service/voting/postOpenVote";
-import { postOpenVote as postActiveVote } from "@/api/e-voting-service/voting/postActiveVoting";
-import { putCreateUser } from "@/api/e-voting-service/user/putCreateUser";
+import React, { useEffect, useState } from "react";
+import { Button, message, Table, Tabs, Typography, Alert, Result, Form, Input, Card, Space } from "antd";
 import { getAll } from "@/api/e-voting-service/voting/getAll";
+import { useUser } from "@/context/UserContext";
+import { getAllUser } from "@/api/e-voting-service/user/getAllUser";
+import { ExtendedVotingServer, InfoUser, LoginRequest } from "@/api/e-voting-service/types";
+import { OpenVoteRequest } from "@/api/e-voting-service/types";
+import { postOpenVote } from "@/api/e-voting-service/voting/postOpenVote";
+import CreateVotingServer from "@/components/Modal/CreateVotingServer";
+import CreateUserModal from "@/components/Modal/CreateUserModal";
+import SignOpenVotingModal from "@/components/Modal/SignOpenVotingModal";
+import WalletConnector from "@/components/WalletConnector";
+import ServerDetailsModal from "@/components/Modal/ServerDetailsModal";
+import { ActiveVotingServerRequest } from "@/api/e-voting-service/types";
+import { postActiveVoting } from "@/api/e-voting-service/voting/postActiveVoting";
+import { Tag } from "antd";
+import { useAccount, useSignMessage } from 'wagmi';
+import { useCheckConnectWallet } from "@/hook/useCheckConnectWallet";
+import { login } from "@/api/e-voting-service/user/login";
 
-const AdminPage = () => {
-  const [votingData, setVotingData] = useState([]);
+const { Title } = Typography;
+
+const AdminLoginForm = ({ onLogin }: { onLogin: (values: LoginRequest) => Promise<void> }) => {
   const [loading, setLoading] = useState(false);
 
-  const fetchVotingData = async () => {
+  const handleSubmit = async (values: LoginRequest) => {
+    setLoading(true);
+    try {
+      const loginData: LoginRequest = {
+        username: values.username,
+        personal_code: values.personal_code,
+        password: values.password
+      };
+      await onLogin(loginData);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card title="Admin Login" style={{ maxWidth: 400, margin: '0 auto', marginTop: 50 }}>
+      <Form layout="vertical" onFinish={handleSubmit}>
+        <Form.Item
+          name="username"
+          label="Username"
+          rules={[{ required: true, message: "Please enter your username" }]}
+        >
+          <Input placeholder="Enter username" />
+        </Form.Item>
+        <Form.Item
+          name="personal_code"
+          label="Personal Code"
+          rules={[{ required: true, message: "Please enter your personal Code" }]}
+        >
+          <Input placeholder="Enter personal code" />
+        </Form.Item>
+        <Form.Item
+          name="password"
+          label="Password"
+          rules={[{ required: true, message: "Please enter your password" }]}
+        >
+          <Input.Password placeholder="Enter password" />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading} block>
+            Login as Admin
+          </Button>
+        </Form.Item>
+      </Form>
+    </Card>
+  );
+};
+
+const AdminManagementPage = () => {
+  const [votingServers, setVotingServers] = useState<ExtendedVotingServer[]>([]);
+  const [users, setUsers] = useState<InfoUser[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [isCreateVotingModalVisible, setIsCreateVotingModalVisible] = useState(false);
+  const [isCreateUserModalVisible, setIsCreateUserModalVisible] = useState(false);
+  const [isSignOpenVotingModalVisible, setIsSignOpenVotingModalVisible] = useState(false);
+  const [selectedServer, setSelectedServer] = useState<{ id: string, name: string } | null>(null);
+  const [detailServer, setDetailServer] = useState<ExtendedVotingServer | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const { user: admin, setUser } = useUser();
+  const { isConnected } = useAccount();
+  const { checkConnectWallet } = useCheckConnectWallet();
+  const { signMessageAsync } = useSignMessage();
+  const isUserAdmin = admin?.is_admin === true;
+
+  const handleAdminLogin = async (values: LoginRequest) => {
+    try {
+      setLoginError("");
+      const response = await login({
+        username: values.username,
+        personal_code: values.personal_code,
+        password: values.password
+      });
+
+      if (!response.user.is_admin) {
+        setLoginError("This account does not have administrator privileges.");
+        return;
+      }
+
+      localStorage.setItem('authToken', response.token);
+
+      setUser({
+        username: values.username,
+        citizen_id: values.personal_code,
+        citizen_name: response.user.citizen_name,
+        verified: response.user.verified,
+        email: response.user.email,
+        compressed_key: response.user.compressed_key,
+        is_admin: response.user.is_admin
+      });
+
+      message.success("Logged in successfully as administrator");
+    } catch (error) {
+      console.error("Login error:", error);
+      setLoginError("Invalid username or password. Please try again.");
+    }
+  };
+
+  const initiateOpenVoting = async (serverId: string, serverName: string) => {
+    if (!isConnected) {
+      await checkConnectWallet();
+      return;
+    }
+
+    setSelectedServer({ id: serverId, name: serverName });
+    setIsSignOpenVotingModalVisible(true);
+  };
+
+  const handleCreateVotingClick = async () => {
+    if (!isConnected) {
+      await checkConnectWallet();
+      return;
+    }
+    setIsCreateVotingModalVisible(true);
+  };
+
+  const fetchVotingServers = async () => {
+    if (!isUserAdmin) return;
+
     setLoading(true);
     try {
       const data = await getAll();
-      setVotingData(data);
+      setVotingServers(data);
     } catch (error) {
       console.error(error);
-      message.error("Failed to fetch voting data");
+      message.error("Failed to fetch voting servers");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenVoting = async (signature: string) => {
+    if (!selectedServer) return;
+
+    try {
+      const params: OpenVoteRequest = {
+        server_id: selectedServer.id,
+        server_name: selectedServer.name,
+        admin_id: admin?.username ? admin.username : "",
+        signature_hex: signature,
+      };
+
+      await postOpenVote(params);
+      message.success("Voting opened successfully");
+      fetchVotingServers();
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to open voting");
+    } finally {
+      setSelectedServer(null);
+    }
+  };
+
+  const handleToggleActive = async (serverName: string, activate: boolean) => {
+    if (!isConnected) {
+      await checkConnectWallet();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const messageToSign = `Admin: ${admin?.username} is acting in server ${serverName}`;
+      const signature = await signMessageAsync({ message: messageToSign });
+
+      const params: ActiveVotingServerRequest = {
+        server_name: serverName,
+        admin_id: admin?.citizen_id || "",
+        signature_hex: signature,
+      };
+
+      await postActiveVoting(params);
+      message.success(`Server ${activate ? 'activated' : 'deactivated'} successfully`);
+      fetchVotingServers();
+    } catch (error) {
+      console.error(error);
+      message.error(`Failed to ${activate ? 'activate' : 'deactivate'} server`);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const fetchUsers = async () => {
+    if (!isUserAdmin) return;
+
+    setLoading(true);
+    try {
+      const data = await getAllUser();
+      setUsers(data);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch users");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchVotingData();
-  }, []);
-
-  const handleCreateUser = async (values: { username: string; email: string; citizen_id: string; password: string }) => {
-    try {
-      const response = await putCreateUser(values);
-      message.success(`User created with code: ${response}`);
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to create user");
+    if (isUserAdmin) {
+      fetchVotingServers();
+      fetchUsers();
     }
-  };
+  }, [isUserAdmin]);
 
-  const handleCreateVoting = async (values: { admin_id: string; server_name: string; number_of_candidates: number; maximum_number_of_voters: number }) => {
-    try {
-      const response = await putCreateVoting(values);
-      message.success(`Voting created with code: ${response}`);
-      fetchVotingData();
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to create voting");
-    }
-  };
+  if (!admin) {
+    return (
+      <div style={{ padding: "24px" }}>
+        <Title level={3} style={{ textAlign: "center", marginBottom: "24px" }}>Admin Dashboard</Title>
+        <AdminLoginForm onLogin={handleAdminLogin} />
+        {loginError && (
+          <Alert
+            message="Login Failed"
+            description={loginError}
+            type="error"
+            showIcon
+            style={{ maxWidth: 400, margin: "16px auto" }}
+          />
+        )}
+      </div>
+    );
+  }
 
-  const handleOpenVote = async (values: { admin_id: string; server_id: string }) => {
-    try {
-      const response = await postOpenVote(values);
-      message.success(`Vote opened: ${JSON.stringify(response)}`);
-      fetchVotingData();
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to open vote");
-    }
-  };
+  if (!isUserAdmin) {
+    return (
+      <Result
+        status="403"
+        title="Admin Access Required"
+        subTitle="Your account does not have administrator privileges."
+        extra={
+          <Button type="primary" onClick={() => {
+            localStorage.removeItem('token');
+            setUser(null);
+          }}>
+            Logout and Try Another Account
+          </Button>
+        }
+      />
+    );
+  }
 
-  const handleActiveVote = async (values: { admin_id: string; server_id: string }) => {
-    try {
-      const response = await postActiveVote(values);
-      message.success(`Vote activated: ${JSON.stringify(response)}`);
-      fetchVotingData();
-    } catch (error) {
-      console.error(error);
-      message.error("Failed to activate vote");
-    }
-  };
-
-  const columns = [
+  const votingServerColumns = [
+    { title: "Server ID", dataIndex: ["voting_server", "server_id"], key: "server_id" },
+    { title: "Server Name", dataIndex: ["voting_server", "server_name"], key: "server_name" },
     {
-      title: "Server Name",
-      dataIndex: "server_name",
-      key: "server_name",
+      title: "State",
+      dataIndex: ["voting_server", "opened_vote"],
+      key: "opened_vote",
+      render: (val: boolean) => (
+        val ?
+          <Tag color="blue">Opened</Tag> :
+          <Tag color="processing">Voting</Tag>
+      )
+    },    { title: "Active", dataIndex: ["voting_server", "active"], key: "active", render: (val: boolean) =>
+        val ? <Tag color="green">Active</Tag> : <Tag color="red">Inactive</Tag>
     },
+    { title: "Number of Candidates", dataIndex: ["voting_server", "number_of_candidates"], key: "number_of_candidates" },
     {
-      title: "Number of Candidates",
-      dataIndex: "number_of_candidates",
-      key: "number_of_candidates",
-    },
-    {
-      title: "Maximum Voters",
-      dataIndex: "maximum_number_of_voters",
-      key: "maximum_number_of_voters",
-    },
-    {
-      title: "Active",
-      dataIndex: "active",
-      key: "active",
-      render: (active: boolean) => (active ? "Yes" : "No"),
+      title: "Actions",
+      key: "actions",
+      render: (_: unknown, record: ExtendedVotingServer) => (
+        <Space>
+          <Button
+            type="primary"
+            disabled={!record.voting_server.active || record.voting_server.opened_vote}
+            onClick={() => initiateOpenVoting(record.voting_server.server_id, record.voting_server.server_name)}
+          >
+            {record.voting_server.opened_vote ? "Opened" : "Open Voting"}
+          </Button>
+          <Button
+            type={record.voting_server.active ? "default" : "primary"}
+            disabled={record.voting_server.active}
+            onClick={() => handleToggleActive(record.voting_server.server_name, !record.voting_server.active)}
+          >
+            Activated
+          </Button>
+          <Button
+            onClick={() => {
+              setDetailServer(record);
+              setIsDetailModalVisible(true);
+            }}
+          >
+            Details
+          </Button>
+        </Space>
+      ),
     },
   ];
 
+  const userColumns = [
+    {title: "Username", dataIndex: "username", key: "username"},
+    {title: "Citizen ID", dataIndex: "citizen_id", key: "citizen_id"},
+    {title: "Name", dataIndex: "citizen_name", key: "citizen_name"},
+    {title: "Email", dataIndex: "email", key: "email"},
+    {title: "Verified", dataIndex: "verified", key: "verified", render: (val: boolean) => (val ? "Yes" : "No")},
+    {title: "Admin", dataIndex: "is_admin", key: "is_admin", render: (val: boolean) => (val ? "✔" : "✘")},
+  ];
+
   return (
-    <div style={{ padding: "24px" }}>
-      <h1>Admin Page</h1>
+    <div style={{padding: "24px"}}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+        <Title level={3}>Admin</Title>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Typography.Text>
+            Logged in as: <strong>{admin.username}</strong>
+          </Typography.Text>
+          <Button
+            onClick={() => {
+              localStorage.removeItem('token');
+              setUser(null);
+            }}
+            size="small"
+          >
+            Logout
+          </Button>
+          <WalletConnector />
+        </div>
+      </div>
 
-      <Form layout="vertical" onFinish={handleCreateUser}>
-        <h2>Create User</h2>
-        <Form.Item name="username" label="Username" rules={[{ required: true, message: "Please enter a username" }]}>
-          <Input placeholder="Enter username" />
-        </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Please enter a valid email" }]}>
-          <Input placeholder="Enter email" />
-        </Form.Item>
-        <Form.Item name="citizen_id" label="Citizen ID" rules={[{ required: true, message: "Please enter a citizen ID" }]}>
-          <Input placeholder="Enter citizen ID" />
-        </Form.Item>
-        <Form.Item name="password" label="Password" rules={[{ required: true, message: "Please enter a password" }]}>
-          <Input.Password placeholder="Enter password" />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">Create User</Button>
-        </Form.Item>
-      </Form>
+      {!isConnected && (
+        <Alert
+          message="Wallet not connected"
+          description="Please connect your wallet to sign transactions for voting operations."
+          type="warning"
+          showIcon
+          style={{ marginBottom: "16px" }}
+        />
+      )}
 
-      <Form layout="vertical" onFinish={handleCreateVoting}>
-        <h2>Create Voting</h2>
-        <Form.Item name="admin_id" label="Admin ID" rules={[{ required: true, message: "Please enter an admin ID" }]}>
-          <Input placeholder="Enter admin ID" />
-        </Form.Item>
-        <Form.Item name="server_name" label="Server Name" rules={[{ required: true, message: "Please enter a server name" }]}>
-          <Input placeholder="Enter server name" />
-        </Form.Item>
-        <Form.Item name="number_of_candidates" label="Number of Candidates" rules={[{ required: true, message: "Please enter the number of candidates" }]}>
-          <Input type="number" placeholder="Enter number of candidates" />
-        </Form.Item>
-        <Form.Item name="maximum_number_of_voters" label="Maximum Number of Voters" rules={[{ required: true, message: "Please enter the maximum number of voters" }]}>
-          <Input type="number" placeholder="Enter maximum number of voters" />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">Create Voting</Button>
-        </Form.Item>
-      </Form>
+      <Tabs defaultActiveKey="1">
+        <Tabs.TabPane tab="Voting Servers" key="1">
+          <Button
+            type="primary"
+            onClick={handleCreateVotingClick}
+            style={{ marginBottom: "16px" }}
+          >
+            Create Voting Server
+          </Button>
+          <Table
+            columns={votingServerColumns}
+            dataSource={votingServers}
+            rowKey={(record) => record.voting_server.server_id}
+            loading={loading}
+          />
+        </Tabs.TabPane>
 
-      <Form layout="vertical" onFinish={handleOpenVote}>
-        <h2>Open Voting</h2>
-        <Form.Item name="admin_id" label="Admin ID" rules={[{ required: true, message: "Please enter an admin ID" }]}>
-          <Input placeholder="Enter admin ID" />
-        </Form.Item>
-        <Form.Item name="server_id" label="Server ID" rules={[{ required: true, message: "Please enter a server ID" }]}>
-          <Input placeholder="Enter server ID" />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">Open Voting</Button>
-        </Form.Item>
-      </Form>
+        <Tabs.TabPane tab="Users" key="2">
+          <Button
+            type="primary"
+            onClick={() => setIsCreateUserModalVisible(true)}
+            style={{ marginBottom: "16px" }}
+          >
+            Create User
+          </Button>
+          <Table
+            columns={userColumns}
+            dataSource={users}
+            rowKey={(record) => record.citizen_id}
+            loading={loading}
+          />
+        </Tabs.TabPane>
+      </Tabs>
 
-      <Form layout="vertical" onFinish={handleActiveVote}>
-        <h2>Activate Voting</h2>
-        <Form.Item name="admin_id" label="Admin ID" rules={[{ required: true, message: "Please enter an admin ID" }]}>
-          <Input placeholder="Enter admin ID" />
-        </Form.Item>
-        <Form.Item name="server_id" label="Server ID" rules={[{ required: true, message: "Please enter a server ID" }]}>
-          <Input placeholder="Enter server ID" />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit">Activate Voting</Button>
-        </Form.Item>
-      </Form>
+      <CreateVotingServer
+        isVisible={isCreateVotingModalVisible}
+        onCancel={() => setIsCreateVotingModalVisible(false)}
+        onSuccess={fetchVotingServers}
+        admin={admin}
+      />
 
-      <h2>Manage Voting Information</h2>
-      <Table dataSource={votingData} columns={columns} loading={loading} rowKey="server_id" />
+      <CreateUserModal
+        isVisible={isCreateUserModalVisible}
+        onCancel={() => setIsCreateUserModalVisible(false)}
+        onSuccess={fetchUsers}
+      />
+
+      <SignOpenVotingModal
+        isVisible={isSignOpenVotingModalVisible}
+        onCancel={() => setIsSignOpenVotingModalVisible(false)}
+        onSign={handleOpenVoting}
+        adminId={admin?.username || ""}
+        serverId={selectedServer?.id || ""}
+        serverName={selectedServer?.name || ""}
+      />
+
+      <ServerDetailsModal
+        isVisible={isDetailModalVisible}
+        onCancel={() => setIsDetailModalVisible(false)}
+        server={detailServer}
+      />
     </div>
   );
 };
 
-export default AdminPage;
+export default AdminManagementPage;

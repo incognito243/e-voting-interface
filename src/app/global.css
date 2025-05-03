@@ -68,7 +68,6 @@ body {
   background-color: var(--secondary-color);
 }
 
-/* Custom styles for balance types */
 .report-type-item {
   padding: 12px;
   border-radius: 8px;
