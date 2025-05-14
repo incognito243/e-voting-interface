@@ -14,6 +14,7 @@ interface VotingPageProps {
   selectedCandidate: Candidate | null;
   setSignatureVerify: (signature: string) => void;
   setSignatureVote: (signature: string) => void;
+  disable: boolean
 }
 
 export default function VotingPage({
@@ -21,6 +22,7 @@ export default function VotingPage({
                                      selectedCandidate,
                                      setSignatureVerify,
                                      setSignatureVote,
+                                     disable,
                                    }: VotingPageProps) {
   const {address} = useAccount()
   const {checkConnectWallet, disconnectWallet} = useCheckConnectWallet();
@@ -143,6 +145,7 @@ export default function VotingPage({
                     onClick={() => {
                       setOpenSignModal(true);
                     }}
+                    disabled={disable}
                   >
                     Sign Message
                   </Button>

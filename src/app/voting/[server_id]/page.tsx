@@ -26,6 +26,7 @@ const VotingAction: NextPage = () => {
   const loginFormRef = useRef<{ submit: () => void }>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [disableButton, setDisableButton] = useState(true);
+  const [disableSign, setDisableSign] = useState(false);
   const [signatureVerify, setSignatureVerify] = useState<string>("");
   const [signatureVote, setSignatureVote] = useState<string>("");
   const {user} = useUser();
@@ -86,6 +87,11 @@ const VotingAction: NextPage = () => {
 
   useEffect(() => {
     setDisableButton(!(signatureVote && signatureVerify));
+    if (signatureVote != "" && signatureVerify != "") {
+      setDisableSign(true);
+    } else {
+      setDisableSign(false);
+    }
   }, [signatureVote, signatureVerify]);
 
   const renderStepContent = () => {
@@ -140,6 +146,7 @@ const VotingAction: NextPage = () => {
               selectedCandidate={selectedCandidate}
               setSignatureVote={setSignatureVote}
               setSignatureVerify={setSignatureVerify}
+              disable={disableSign}
             />
           </div>
         );
@@ -175,7 +182,7 @@ const VotingAction: NextPage = () => {
       <Title level={3}>Voting Action</Title>
       {server.voting_server.active ? (
         server.voting_server.opened_vote ? (
-          <VotingResults server={server} />
+          <VotingResults server={server}/>
         ) : (
           <div>
             <Steps current={currentStep} className="w-full max-w-md mb-8">

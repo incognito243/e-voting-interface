@@ -11,12 +11,6 @@ export const getFormattedExpirationTime = (expirationTime: number): string => {
   const diffInSeconds = (expirationTime - now) / 1000;
   let unit: 'month' | 'day' | 'hour' | 'minute' = 'minute';
 
-  console.log("diffInSeconds", diffInSeconds)
-  console.log(60 * 60 * 24 * 30)
-  console.log(60 * 60 * 24)
-  console.log(60 * 60)
-  console.log(60)
-
   if (diffInSeconds >= 60 * 60 * 24 * 30) {
     unit = 'month';
   } else if (diffInSeconds >= 60 * 60 * 24) {
