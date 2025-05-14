@@ -2,13 +2,20 @@ import { format, formatDistanceToNowStrict } from 'date-fns';
 
 export const getFormattedExpirationTime = (expirationTime: number): string => {
   const now = Date.now();
+  const expMs = expirationTime;
 
-  if (now > expirationTime * 1000) {
+  if (now > expMs) {
     return 'Voting was closed';
   }
 
-  const diffInSeconds = (expirationTime * 1000 - now) / 1000;
+  const diffInSeconds = (expirationTime - now) / 1000;
   let unit: 'month' | 'day' | 'hour' | 'minute' = 'minute';
+
+  console.log("diffInSeconds", diffInSeconds)
+  console.log(60 * 60 * 24 * 30)
+  console.log(60 * 60 * 24)
+  console.log(60 * 60)
+  console.log(60)
 
   if (diffInSeconds >= 60 * 60 * 24 * 30) {
     unit = 'month';
@@ -23,7 +30,7 @@ export const getFormattedExpirationTime = (expirationTime: number): string => {
   const relativeTime =
     diffInSeconds < 60
       ? '<1 min'
-      : formatDistanceToNowStrict(expirationTime * 1000, { unit, addSuffix: true });
+      : formatDistanceToNowStrict(expMs, { unit, addSuffix: true });
 
-  return `${format(expirationTime * 1000, 'yyyy-MM-dd')} (${relativeTime})`;
+  return `${format(expMs, 'dd-MM-yyyy')} (${relativeTime})`;
 };

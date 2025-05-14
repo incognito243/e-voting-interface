@@ -102,7 +102,7 @@ const CreateVotingServer: React.FC<CreateVotingServerProps> = ({
         admin_id: admin?.citizen_id || "",
         signature_hex: signature,
         contract_address: formValues.contract_address || "",
-        exp_time: formValues.exp_time || new Date(Date.now() + 86400000).toISOString(),
+        exp_time: new Date(formValues.exp_time).getTime() || new Date(Date.now() + 86400000).getTime(),
       };
 
       const response = await putCreateVoting(completeValues);

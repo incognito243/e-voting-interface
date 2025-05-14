@@ -295,7 +295,7 @@ const AdminManagementPage = () => {
             disabled={record.voting_server.active}
             onClick={() => handleToggleActive(record.voting_server.server_name, !record.voting_server.active)}
           >
-            Activated
+            {record.voting_server.active ? "Activated" : "Activate"}
           </Button>
           <Button
             onClick={() => {

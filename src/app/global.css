@@ -1,5 +1,7 @@
 @tailwind utilities;
-
+nextjs-portal {
+  display: none;
+}
 html, body {
   padding: 0;
   margin: 0;

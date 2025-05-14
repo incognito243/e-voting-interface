@@ -45,7 +45,7 @@ export interface CreateVotingServerRequest {
   candidates: Candidate[];
   signature_hex: string;
   contract_address: string;
-  exp_time: string;
+  exp_time: number;
 }
 
 export interface GetVotingServerByIdRequest {
